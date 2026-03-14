@@ -1,0 +1,89 @@
+"""
+E2E tests for user endpoints (consume-style, read-only).
+
+These tests verify that user endpoints work correctly by making
+actual HTTP requests to a running server.
+
+To run these tests:
+1. Start the server: pipenv run dev (or pipenv run api for containerized)
+2. Run E2E tests: pipenv run e2e
+
+API runs on port 9102 (same for dev and api).
+"""
+import pytest
+import requests
+
+BASE_URL = "http://localhost:9102"
+
+
+def _err(response, expected):
+    """Format assertion error with response body for debugging."""
+    body = response.text[:300] if response.text else "(empty)"
+    return f"Expected {expected}, got {response.status_code}. Response: {body}"
+
+
+def get_auth_token():
+    """Helper function to get an authentication token from dev-login."""
+    response = requests.post(
+        f"{BASE_URL}/dev-login",
+        json={"subject": "e2e-test-user", "roles": ["admin", "developer"]},
+    )
+    if response.status_code == 200:
+        return response.json()["access_token"]
+    return None
+
+
+@pytest.mark.e2e
+def test_get_users_endpoint():
+    """Test GET /api/user endpoint."""
+    token = get_auth_token()
+    assert token is not None, "Failed to get auth token"
+
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{BASE_URL}/api/user", headers=headers)
+    assert response.status_code == 200, _err(response, 200)
+
+    response_data = response.json()
+    assert isinstance(response_data, dict), "Response should be a dict (infinite scroll format)"
+    assert "items" in response_data, "Response should have 'items' key"
+    assert "limit" in response_data, "Response should have 'limit' key"
+    assert "has_more" in response_data, "Response should have 'has_more' key"
+    assert "next_cursor" in response_data, "Response should have 'next_cursor' key"
+    assert isinstance(response_data["items"], list), "Items should be a list"
+
+
+@pytest.mark.e2e
+def test_get_users_with_name_filter():
+    """Test GET /api/user with name query parameter."""
+    token = get_auth_token()
+    assert token is not None, "Failed to get auth token"
+
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{BASE_URL}/api/user?name=test", headers=headers)
+    assert response.status_code == 200, _err(response, 200)
+
+    response_data = response.json()
+    assert isinstance(response_data, dict), "Response should be a dict (infinite scroll format)"
+    assert "items" in response_data, "Response should have 'items' key"
+    assert isinstance(response_data["items"], list), "Items should be a list"
+
+
+@pytest.mark.e2e
+def test_get_user_not_found():
+    """Test GET /api/user/<id> with non-existent ID."""
+    token = get_auth_token()
+    assert token is not None, "Failed to get auth token"
+
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(
+        f"{BASE_URL}/api/user/000000000000000000000000",
+        headers=headers,
+    )
+    assert response.status_code == 404, _err(response, 404)
+
+
+@pytest.mark.e2e
+def test_user_endpoints_require_auth():
+    """Test that user endpoints require authentication."""
+    response = requests.get(f"{BASE_URL}/api/user")
+    assert response.status_code == 401, f"Expected 401, got {response.status_code}"
