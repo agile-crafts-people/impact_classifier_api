@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: {{info.name}} {{service.name}} API
+  title: Creators Dashboard classifier API
   description: |
-    A Flask + MongoDB API for the {{service.name}} service.
+    A Flask + MongoDB API for the classifier service.
     
     ## Authentication
     All endpoints (except `/metrics`) require JWT authentication via the `Authorization` header:
@@ -14,13 +14,13 @@ info:
     test token from `test/e2e/e2e_auth.py` that matches your `JWT_SECRET` and expected claims.
   version: 0.1.0
   contact:
-    name: {{org.name}}
-    email: {{org.email}}
+    name: Agile Crafts People
+    email: info@agilecrafts.com
   license:
     name: Apache-2.0
 
 servers:
-  - url: http://localhost:{{repo.port}}
+  - url: http://localhost:9100
     description: Local development server
 
 tags:
@@ -28,22 +28,16 @@ tags:
     description: Configuration endpoints
   - name: Metrics
     description: Monitoring endpoints
-{% for domain in service.data_domains.controls -%}
-{{ '  ' -}}
-- name: {{domain}}
-    description: {{domain}} operations (create, read, update)
-{% endfor -%}
-{% for domain in service.data_domains.creates -%}
-{{ '  ' -}}
-- name: {{domain}}
-    description: {{domain}} operations (create, read)
-{% endfor -%}
-{% for domain in service.data_domains.consumes -%}
-{{ '  ' -}}
-- name: {{domain}}
-    description: {{domain}} operations (read-only)
-{% endfor -%}
-
+  - name: Sentiment
+    description: Sentiment operations (create, read, update)
+  - name: Ratio
+    description: Ratio operations (create, read, update)
+  - name: Post
+    description: Post operations (read-only)
+  - name: Comment
+    description: Comment operations (read-only)
+  - name: User
+    description: User operations (read-only)
 paths:
   /api/config:
     get:
@@ -98,15 +92,13 @@ paths:
               schema:
                 type: string
 
-{% for domain in service.data_domains.controls -%}
-{{ '  ' -}}
-/api/{{domain}}:
+  /api/Sentiment:
     get:
       tags:
-        - {{domain}}
-      summary: Get all {{domain}} documents
-      description: Retrieve infinite scroll batch of sorted, filtered {{domain}} documents
-      operationId: get{{domain}}s
+        - Sentiment
+      summary: Get all Sentiment documents
+      description: Retrieve infinite scroll batch of sorted, filtered Sentiment documents
+      operationId: getSentiments
       security:
         - bearerAuth: []
       parameters:
@@ -116,7 +108,7 @@ paths:
           description: Optional name filter (supports partial matches, case-insensitive)
           schema:
             type: string
-            example: my-{{domain}}
+            example: my-Sentiment
         - name: after_id
           in: query
           required: false
@@ -188,10 +180,10 @@ paths:
           $ref: '#/components/responses/InternalError'
     post:
       tags:
-        - {{domain}}
-      summary: Create a new {{domain}} document
-      description: Create a new {{domain}} document (requires staff or admin role)
-      operationId: create{{domain}}
+        - Sentiment
+      summary: Create a new Sentiment document
+      description: Create a new Sentiment document (requires staff or admin role)
+      operationId: createSentiment
       security:
         - bearerAuth: []
       requestBody:
@@ -199,10 +191,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/{{domain}}Input'
+              $ref: '#/components/schemas/SentimentInput'
       responses:
         '201':
-          description: {{domain}} created successfully
+          description: Sentiment created successfully
           content:
             application/json:
               schema:
@@ -218,31 +210,31 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/{{domain}}/{{'{'}}{{domain}}Id{{'}'}}:
+  /api/Sentiment/{SentimentId}:
     get:
       tags:
-        - {{domain}}
-      summary: Get {{domain}} by {{domain}}Id
-      description: Retrieve a specific {{domain}} document by its {{domain}}Id
-      operationId: get{{domain}}
+        - Sentiment
+      summary: Get Sentiment by SentimentId
+      description: Retrieve a specific Sentiment document by its SentimentId
+      operationId: getSentiment
       security:
         - bearerAuth: []
       parameters:
-        - name: {{domain}}Id
+        - name: SentimentId
           in: path
           required: true
-          description: The {{domain}} ID (MongoDB ObjectId)
+          description: The Sentiment ID (MongoDB ObjectId)
           schema:
             type: string
             pattern: '^[0-9a-fA-F]{24}$'
             example: 507f1f77bcf86cd799439011
       responses:
         '200':
-          description: Successfully retrieved {{domain}}
+          description: Successfully retrieved Sentiment
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{domain}}'
+                $ref: '#/components/schemas/Sentiment'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -251,17 +243,17 @@ paths:
           $ref: '#/components/responses/InternalError'
     patch:
       tags:
-        - {{domain}}
-      summary: Update {{domain}} document
-      description: Update a {{domain}} document (requires admin role). Cannot update _id, created, or saved fields.
-      operationId: update{{domain}}
+        - Sentiment
+      summary: Update Sentiment document
+      description: Update a Sentiment document (requires admin role). Cannot update _id, created, or saved fields.
+      operationId: updateSentiment
       security:
         - bearerAuth: []
       parameters:
-        - name: {{domain}}Id
+        - name: SentimentId
           in: path
           required: true
-          description: The {{domain}} ID (MongoDB ObjectId)
+          description: The Sentiment ID (MongoDB ObjectId)
           schema:
             type: string
             pattern: '^[0-9a-fA-F]{24}$'
@@ -271,14 +263,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/{{domain}}Update'
+              $ref: '#/components/schemas/SentimentUpdate'
       responses:
         '200':
-          description: {{domain}} updated successfully
+          description: Sentiment updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{domain}}'
+                $ref: '#/components/schemas/Sentiment'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -287,17 +279,13 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-{% endfor -%}
-
-{% for domain in service.data_domains.creates -%}
-{{ '  ' -}}
-/api/{{domain}}:
+  /api/Ratio:
     get:
       tags:
-        - {{domain}}
-      summary: Get all {{domain}} documents
-      description: Retrieve infinite scroll batch of sorted, filtered {{domain}} documents
-      operationId: get{{domain}}s
+        - Ratio
+      summary: Get all Ratio documents
+      description: Retrieve infinite scroll batch of sorted, filtered Ratio documents
+      operationId: getRatios
       security:
         - bearerAuth: []
       parameters:
@@ -307,7 +295,7 @@ paths:
           description: Optional name filter (supports partial matches, case-insensitive)
           schema:
             type: string
-            example: my-{{domain}}
+            example: my-Ratio
         - name: after_id
           in: query
           required: false
@@ -329,7 +317,7 @@ paths:
         - name: sort_by
           in: query
           required: false
-          description: Field to sort by (name, description, created.at_time)
+          description: Field to sort by (name, description, status, created.at_time, saved.at_time)
           schema:
             type: string
             default: name
@@ -345,7 +333,7 @@ paths:
             example: asc
       responses:
         '200':
-          description: Successfully retrieved {{domain}}s
+          description: Successfully retrieved controls
           content:
             application/json:
               schema:
@@ -359,7 +347,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/{{domain}}'
+                      $ref: '#/components/schemas/Control'
                   limit:
                     type: integer
                     example: 10
@@ -379,10 +367,10 @@ paths:
           $ref: '#/components/responses/InternalError'
     post:
       tags:
-        - {{domain}}
-      summary: Create a new {{domain}} document
-      description: Create a new {{domain}} document (requires staff or admin role)
-      operationId: create{{domain}}
+        - Ratio
+      summary: Create a new Ratio document
+      description: Create a new Ratio document (requires staff or admin role)
+      operationId: createRatio
       security:
         - bearerAuth: []
       requestBody:
@@ -390,10 +378,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/{{domain}}Input'
+              $ref: '#/components/schemas/RatioInput'
       responses:
         '201':
-          description: {{domain}} created successfully
+          description: Ratio created successfully
           content:
             application/json:
               schema:
@@ -409,48 +397,82 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/{{domain}}/{{'{'}}{{domain}}Id{{'}'}}:
+  /api/Ratio/{RatioId}:
     get:
       tags:
-        - {{domain}}
-      summary: Get {{domain}} by {{domain}}Id
-      description: Retrieve a specific {{domain}} document by its {{domain}}Id
-      operationId: get{{domain}}
+        - Ratio
+      summary: Get Ratio by RatioId
+      description: Retrieve a specific Ratio document by its RatioId
+      operationId: getRatio
       security:
         - bearerAuth: []
       parameters:
-        - name: {{domain}}Id
+        - name: RatioId
           in: path
           required: true
-          description: The {{domain}} ID (MongoDB ObjectId)
+          description: The Ratio ID (MongoDB ObjectId)
           schema:
             type: string
             pattern: '^[0-9a-fA-F]{24}$'
             example: 507f1f77bcf86cd799439011
       responses:
         '200':
-          description: Successfully retrieved {{domain}}
+          description: Successfully retrieved Ratio
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{domain}}'
+                $ref: '#/components/schemas/Ratio'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-{% endfor -%}
-
-{% for domain in service.data_domains.consumes -%}
-{{ '  ' -}}
-  /api/{{domain}}:
+    patch:
+      tags:
+        - Ratio
+      summary: Update Ratio document
+      description: Update a Ratio document (requires admin role). Cannot update _id, created, or saved fields.
+      operationId: updateRatio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: RatioId
+          in: path
+          required: true
+          description: The Ratio ID (MongoDB ObjectId)
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatioUpdate'
+      responses:
+        '200':
+          description: Ratio updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ratio'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/Post:
     get:
       tags:
-        - {{domain}}
-      summary: Get all {{domain}} documents
-      description: Retrieve infinite scroll batch of sorted, filtered {{domain}} documents (read-only)
-      operationId: get{{domain}}s
+        - Post
+      summary: Get all Post documents
+      description: Retrieve infinite scroll batch of sorted, filtered Post documents (read-only)
+      operationId: getPosts
       security:
         - bearerAuth: []
       parameters:
@@ -460,7 +482,7 @@ paths:
           description: Optional name filter (supports partial matches, case-insensitive)
           schema:
             type: string
-            example: my-{{domain}}
+            example: my-Post
         - name: after_id
           in: query
           required: false
@@ -498,7 +520,7 @@ paths:
             example: asc
       responses:
         '200':
-          description: Successfully retrieved {{domain}}s
+          description: Successfully retrieved Posts
           content:
             application/json:
               schema:
@@ -512,7 +534,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/{{domain}}'
+                      $ref: '#/components/schemas/Post'
                   limit:
                     type: integer
                     example: 10
@@ -530,43 +552,271 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-{% endfor -%}
-
-{% for domain in service.data_domains.consumes -%}
-{{ '  ' -}}
-/api/{{domain}}/{{ '{'}}{{domain}}Id}:
+  /api/Comment:
     get:
       tags:
-        - {{domain}}
-      summary: Get {{domain}} by {{domain}}Id
-      description: Retrieve a specific {{domain}} document by its {{domain}}Id (read-only)
-      operationId: get{{domain}}
+        - Comment
+      summary: Get all Comment documents
+      description: Retrieve infinite scroll batch of sorted, filtered Comment documents (read-only)
+      operationId: getComments
       security:
         - bearerAuth: []
       parameters:
-        - name: {{domain}}Id
+        - name: name
+          in: query
+          required: false
+          description: Optional name filter (supports partial matches, case-insensitive)
+          schema:
+            type: string
+            example: my-Comment
+        - name: after_id
+          in: query
+          required: false
+          description: Cursor for infinite scroll (ID of last item from previous batch, omit for first request)
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: 507f1f77bcf86cd799439011
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 10
+        - name: sort_by
+          in: query
+          required: false
+          description: Field to sort by (name, description)
+          schema:
+            type: string
+            default: name
+            example: name
+        - name: order
+          in: query
+          required: false
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+            example: asc
+      responses:
+        '200':
+          description: Successfully retrieved Comments
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - limit
+                  - has_more
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  limit:
+                    type: integer
+                    example: 10
+                  has_more:
+                    type: boolean
+                    example: true
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    pattern: '^[0-9a-fA-F]{24}$'
+                    example: 507f1f77bcf86cd799439011
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/User:
+    get:
+      tags:
+        - User
+      summary: Get all User documents
+      description: Retrieve infinite scroll batch of sorted, filtered User documents (read-only)
+      operationId: getUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: Optional name filter (supports partial matches, case-insensitive)
+          schema:
+            type: string
+            example: my-User
+        - name: after_id
+          in: query
+          required: false
+          description: Cursor for infinite scroll (ID of last item from previous batch, omit for first request)
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: 507f1f77bcf86cd799439011
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 10
+        - name: sort_by
+          in: query
+          required: false
+          description: Field to sort by (name, description)
+          schema:
+            type: string
+            default: name
+            example: name
+        - name: order
+          in: query
+          required: false
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+            example: asc
+      responses:
+        '200':
+          description: Successfully retrieved Users
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - limit
+                  - has_more
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  limit:
+                    type: integer
+                    example: 10
+                  has_more:
+                    type: boolean
+                    example: true
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    pattern: '^[0-9a-fA-F]{24}$'
+                    example: 507f1f77bcf86cd799439011
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/Post/{PostId}:
+    get:
+      tags:
+        - Post
+      summary: Get Post by PostId
+      description: Retrieve a specific Post document by its PostId (read-only)
+      operationId: getPost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: PostId
           in: path
           required: true
-          description: The {{domain}} ID (MongoDB ObjectId)
+          description: The Post ID (MongoDB ObjectId)
           schema:
             type: string
             pattern: '^[0-9a-fA-F]{24}$'
             example: 507f1f77bcf86cd799439011
       responses:
         '200':
-          description: Successfully retrieved {{domain}}
+          description: Successfully retrieved Post
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{domain}}'
+                $ref: '#/components/schemas/Post'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-{% endfor -%}
-
+  /api/Comment/{CommentId}:
+    get:
+      tags:
+        - Comment
+      summary: Get Comment by CommentId
+      description: Retrieve a specific Comment document by its CommentId (read-only)
+      operationId: getComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: CommentId
+          in: path
+          required: true
+          description: The Comment ID (MongoDB ObjectId)
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Successfully retrieved Comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/User/{UserId}:
+    get:
+      tags:
+        - User
+      summary: Get User by UserId
+      description: Retrieve a specific User document by its UserId (read-only)
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: UserId
+          in: path
+          required: true
+          description: The User ID (MongoDB ObjectId)
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Successfully retrieved User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   securitySchemes:
     bearerAuth:
@@ -662,11 +912,9 @@ components:
           pattern: '^[^\s]{1,40}$'
           example: corr-abc123
 
-{% for domain in service.data_domains.controls -%}
-{{ '    ' -}}
-{{domain}}:
+    Sentiment:
       type: object
-      description: {{domain}} domain document
+      description: Sentiment domain document
       additionalProperties: false
       required:
         - _id
@@ -681,17 +929,17 @@ components:
           example: 507f1f77bcf86cd799439011
         name:
           type: string
-          description: {{domain}} name
+          description: Sentiment name
           pattern: '^[^\s]{1,40}$'
-          example: my-{{domain}}
+          example: my-Sentiment
         description:
           type: string
-          description: {{domain}} description
+          description: Sentiment description
           pattern: '^[^\t\n]{0,255}$'
-          example: A sample {{domain}} document
+          example: A sample Sentiment document
         status:
           type: string
-          description: {{domain}} status
+          description: Sentiment status
           enum:
             - active
             - archived
@@ -701,57 +949,55 @@ components:
         saved:
           $ref: '#/components/schemas/Breadcrumb'
 
-    {{domain}}Input:
+    SentimentInput:
       type: object
-      description: Input for creating a {{domain}} document
+      description: Input for creating a Sentiment document
       properties:
         name:
           type: string
-          description: {{domain}} name
+          description: Sentiment name
           pattern: '^[^\s]{1,40}$'
-          example: my-{{domain}}
+          example: my-Sentiment
         description:
           type: string
-          description: {{domain}} description
+          description: Sentiment description
           pattern: '^[^\t\n]{0,255}$'
-          example: A sample {{domain}} document
+          example: A sample Sentiment document
         status:
           type: string
-          description: {{domain}} status
+          description: Sentiment status
           enum:
             - active
             - archived
           example: active
 
-    {{domain}}Update:
+    SentimentUpdate:
       type: object
-      description: Fields to update in a {{domain}} document (cannot include _id, created, saved)
+      description: Fields to update in a Sentiment document (cannot include _id, created, saved)
       properties:
         name:
           type: string
-          description: {{domain}} name
+          description: Sentiment name
           pattern: '^[^\s]{1,40}$'
         description:
           type: string
-          description: {{domain}} description
+          description: Sentiment description
           pattern: '^[^\t\n]{0,255}$'
         status:
           type: string
-          description: {{domain}} status
+          description: Sentiment status
           enum:
             - active
             - archived
-{% endfor -%}
-{% for domain in service.data_domains.creates -%}
-{{ '    ' -}}
-{{domain}}:
+    Ratio:
       type: object
-      description: {{domain}} domain document
+      description: Ratio domain document
       additionalProperties: false
       required:
         - _id
         - name
         - created
+        - saved
       properties:
         _id:
           type: string
@@ -760,45 +1006,69 @@ components:
           example: 507f1f77bcf86cd799439011
         name:
           type: string
-          description: {{domain}} name
+          description: Ratio name
           pattern: '^[^\s]{1,40}$'
-          example: my-{{domain}}
+          example: my-Ratio
         description:
           type: string
-          description: {{domain}} description
+          description: Ratio description
           pattern: '^[^\t\n]{0,255}$'
-          example: A sample {{domain}} document
+          example: A sample Ratio document
         status:
           type: string
-          description: {{domain}} status
+          description: Ratio status
+          enum:
+            - active
+            - archived
           example: active
         created:
           $ref: '#/components/schemas/Breadcrumb'
+        saved:
+          $ref: '#/components/schemas/Breadcrumb'
 
-    {{domain}}Input:
+    RatioInput:
       type: object
-      description: Input for creating a {{domain}} document
+      description: Input for creating a Ratio document
       properties:
         name:
           type: string
-          description: {{domain}} name
+          description: Ratio name
           pattern: '^[^\s]{1,40}$'
-          example: my-{{domain}}
+          example: my-Ratio
         description:
           type: string
-          description: {{domain}} description
+          description: Ratio description
           pattern: '^[^\t\n]{0,255}$'
-          example: A sample {{domain}} document
+          example: A sample Ratio document
         status:
           type: string
-          description: {{domain}} status
+          description: Ratio status
+          enum:
+            - active
+            - archived
           example: active
-{% endfor -%}
-{% for domain in service.data_domains.consumes -%}
-{{ '    ' -}}
-{{domain}}:
+
+    RatioUpdate:
       type: object
-      description: {{domain}} domain document (read-only)
+      description: Fields to update in a Ratio document (cannot include _id, created, saved)
+      properties:
+        name:
+          type: string
+          description: Ratio name
+          pattern: '^[^\s]{1,40}$'
+        description:
+          type: string
+          description: Ratio description
+          pattern: '^[^\t\n]{0,255}$'
+        status:
+          type: string
+          description: Ratio status
+          enum:
+            - active
+            - archived
+    Post:
+      type: object
+      description: Post domain document (read-only)
       additionalProperties: false
       required:
         - _id
@@ -811,21 +1081,73 @@ components:
           example: 507f1f77bcf86cd799439011
         name:
           type: string
-          description: {{domain}} name
+          description: Post name
           pattern: '^[^\s]{1,40}$'
-          example: my-{{domain}}
+          example: my-Post
         description:
           type: string
-          description: {{domain}} description
+          description: Post description
           pattern: '^[^\t\n]{0,255}$'
-          example: A sample {{domain}} document
+          example: A sample Post document
         status:
           type: string
-          description: {{domain}} status
+          description: Post status
           example: active
-{% endfor -%}
-{{ '    ' -}}
-InfiniteScrollResponse:
+    Comment:
+      type: object
+      description: Comment domain document (read-only)
+      additionalProperties: false
+      required:
+        - _id
+        - name
+      properties:
+        _id:
+          type: string
+          description: MongoDB document ID
+          pattern: '^[0-9a-fA-F]{24}$'
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Comment name
+          pattern: '^[^\s]{1,40}$'
+          example: my-Comment
+        description:
+          type: string
+          description: Comment description
+          pattern: '^[^\t\n]{0,255}$'
+          example: A sample Comment document
+        status:
+          type: string
+          description: Comment status
+          example: active
+    User:
+      type: object
+      description: User domain document (read-only)
+      additionalProperties: false
+      required:
+        - _id
+        - name
+      properties:
+        _id:
+          type: string
+          description: MongoDB document ID
+          pattern: '^[0-9a-fA-F]{24}$'
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: User name
+          pattern: '^[^\s]{1,40}$'
+          example: my-User
+        description:
+          type: string
+          description: User description
+          pattern: '^[^\t\n]{0,255}$'
+          example: A sample User document
+        status:
+          type: string
+          description: User status
+          example: active
+    InfiniteScrollResponse:
       type: object
       description: Infinite scroll pagination response
       required:

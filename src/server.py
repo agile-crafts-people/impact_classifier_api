@@ -34,43 +34,30 @@ from api_utils import (
     create_config_routes,
     create_explorer_routes
 )
-{% for item in service.data_domains.controls -%}
-from src.routes.{{item | lower}}_routes import create_{{item | lower}}_routes
-{% endfor -%}
-{% for item in service.data_domains.creates -%}
-from src.routes.{{item | lower}}_routes import create_{{item | lower}}_routes
-{% endfor -%}
-{% for item in service.data_domains.consumes -%}
-from src.routes.{{item | lower}}_routes import create_{{item | lower}}_routes
-{% endfor -%}
-
+from src.routes.sentiment_routes import create_sentiment_routes
+from src.routes.ratio_routes import create_ratio_routes
+from src.routes.post_routes import create_post_routes
+from src.routes.comment_routes import create_comment_routes
+from src.routes.user_routes import create_user_routes
 # Register route blueprints
 # Register explorer routes with template's docs directory
 docs_dir = os.path.join(os.path.dirname(__file__), '..', 'docs')
 app.register_blueprint(create_explorer_routes(docs_dir), url_prefix='/docs')
 app.register_blueprint(create_config_routes(), url_prefix='/api/config')
-{% for item in service.data_domains.controls -%}
-app.register_blueprint(create_{{item | lower}}_routes(), url_prefix='/api/{{item | lower}}')
-{% endfor -%}
-{% for item in service.data_domains.creates -%}
-app.register_blueprint(create_{{item | lower}}_routes(), url_prefix='/api/{{item | lower}}')
-{% endfor -%}
-{% for item in service.data_domains.consumes -%}
-app.register_blueprint(create_{{item | lower}}_routes(), url_prefix='/api/{{item | lower}}')
-{% endfor -%}
+app.register_blueprint(create_sentiment_routes(), url_prefix='/api/sentiment')
+app.register_blueprint(create_ratio_routes(), url_prefix='/api/ratio')
+app.register_blueprint(create_post_routes(), url_prefix='/api/post')
+app.register_blueprint(create_comment_routes(), url_prefix='/api/comment')
+app.register_blueprint(create_user_routes(), url_prefix='/api/user')
 metrics = create_metric_routes(app)  # This exposes /metrics endpoint
 
 logger.info("============= Routes Registered ===============")
 logger.info("  /api/config - Configuration endpoint")
-{% for item in service.data_domains.controls -%}
-logger.info("  /api/{{item | lower}} - {{item}} domain endpoints")
-{% endfor -%}
-{% for item in service.data_domains.creates -%}
-logger.info("  /api/{{item | lower}} - {{item}} domain endpoints")
-{% endfor -%}
-{% for item in service.data_domains.consumes -%}
-logger.info("  /api/{{item | lower}} - {{item}} domain endpoints")
-{% endfor -%}
+logger.info("  /api/sentiment - Sentiment domain endpoints")
+logger.info("  /api/ratio - Ratio domain endpoints")
+logger.info("  /api/post - Post domain endpoints")
+logger.info("  /api/comment - Comment domain endpoints")
+logger.info("  /api/user - User domain endpoints")
 logger.info("  /docs - API Explorer")
 logger.info("  /metrics - Prometheus metrics endpoint")
 
@@ -97,6 +84,6 @@ signal.signal(signal.SIGINT, handle_exit)
 
 # Expose app for Gunicorn or direct execution
 if __name__ == "__main__":
-    api_port = config.{{ (repo.name | upper | replace("-", "_")) }}_PORT
+    api_port = config.CLASSIFIER_API_PORT
     logger.info(f"Starting Flask server on port {api_port}")
     app.run(host="0.0.0.0", port=api_port, debug=False)

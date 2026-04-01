@@ -23,7 +23,7 @@ class TestServerInitialization(unittest.TestCase):
         mock_config = MagicMock()
         mock_config.ENUMERATORS_COLLECTION_NAME = "Enumerators"
         mock_config.VERSIONS_COLLECTION_NAME = "Versions"
-        mock_config.{{ (repo.name | upper | replace("-", "_")) }}_PORT = 8184
+        mock_config.CLASSIFIER_API_PORT = 8184
         mock_get_config.return_value = mock_config
         
         mock_mongo_instance = MagicMock()
@@ -88,30 +88,44 @@ class TestAppConfiguration(unittest.TestCase):
         """Domain APIs must not register HTTP routes that mint credentials."""
         response = self.client.post(_FORBIDDEN_CREDENTIAL_ISSUER_PATH)
         self.assertEqual(response.status_code, 404)
-{% for item in service.data_domains.controls %}
-    def test_{{item | lower}}_routes_registered(self):
-        """Test that /api/{{item | lower}} routes are registered."""
-        response = self.client.get('/api/{{item | lower}}')
+
+    def test_sentiment_routes_registered(self):
+        """Test that /api/sentiment routes are registered."""
+        response = self.client.get('/api/sentiment')
         # Should not get 404 (route exists), but may get 401 (auth required)
         self.assertIn(response.status_code, [200, 401, 500])
 
-{% endfor %}
-{% for item in service.data_domains.creates %}
-    def test_{{item | lower}}_routes_registered(self):
-        """Test that /api/{{item | lower}} routes are registered."""
-        response = self.client.get('/api/{{item | lower}}')
+
+    def test_ratio_routes_registered(self):
+        """Test that /api/ratio routes are registered."""
+        response = self.client.get('/api/ratio')
         # Should not get 404 (route exists), but may get 401 (auth required)
         self.assertIn(response.status_code, [200, 401, 500])
 
-{% endfor %}
-{% for item in service.data_domains.consumes %}
-    def test_{{item | lower}}_routes_registered(self):
-        """Test that /api/{{item | lower}} routes are registered."""
-        response = self.client.get('/api/{{item | lower}}')
+
+
+
+    def test_post_routes_registered(self):
+        """Test that /api/post routes are registered."""
+        response = self.client.get('/api/post')
         # Should not get 404 (route exists), but may get 401 (auth required)
         self.assertIn(response.status_code, [200, 401, 500])
 
-{% endfor %}
+
+    def test_comment_routes_registered(self):
+        """Test that /api/comment routes are registered."""
+        response = self.client.get('/api/comment')
+        # Should not get 404 (route exists), but may get 401 (auth required)
+        self.assertIn(response.status_code, [200, 401, 500])
+
+
+    def test_user_routes_registered(self):
+        """Test that /api/user routes are registered."""
+        response = self.client.get('/api/user')
+        # Should not get 404 (route exists), but may get 401 (auth required)
+        self.assertIn(response.status_code, [200, 401, 500])
+
+
     
     def test_metrics_route_registered(self):
         """Test that /metrics route is registered."""
@@ -124,15 +138,19 @@ class TestAppConfiguration(unittest.TestCase):
         blueprint_names = [bp.name for bp in self.app.blueprints.values()]
         
         # Check that our custom blueprints are registered
-{% for item in service.data_domains.controls %}
-        self.assertIn('{{item | lower}}_routes', blueprint_names)
-{% endfor %}
-{% for item in service.data_domains.creates %}
-        self.assertIn('{{item | lower}}_routes', blueprint_names)
-{% endfor %}
-{% for item in service.data_domains.consumes %}
-        self.assertIn('{{item | lower}}_routes', blueprint_names)
-{% endfor %}
+
+        self.assertIn('sentiment_routes', blueprint_names)
+
+        self.assertIn('ratio_routes', blueprint_names)
+
+
+
+        self.assertIn('post_routes', blueprint_names)
+
+        self.assertIn('comment_routes', blueprint_names)
+
+        self.assertIn('user_routes', blueprint_names)
+
     
     def test_url_map_contains_expected_routes(self):
         """Test that URL map contains all expected route patterns."""
@@ -143,15 +161,19 @@ class TestAppConfiguration(unittest.TestCase):
         self.assertTrue(any('/docs' in rule for rule in rules))
         self.assertTrue(any('/api/config' in rule for rule in rules))
         self.assertFalse(any(_FORBIDDEN_CREDENTIAL_ISSUER_PATH in rule for rule in rules))
-{% for item in service.data_domains.controls %}
-        self.assertTrue(any('/api/{{item | lower}}' in rule for rule in rules))
-{% endfor %}
-{% for item in service.data_domains.creates %}
-        self.assertTrue(any('/api/{{item | lower}}' in rule for rule in rules))
-{% endfor %}
-{% for item in service.data_domains.consumes %}
-        self.assertTrue(any('/api/{{item | lower}}' in rule for rule in rules))
-{% endfor %}
+
+        self.assertTrue(any('/api/sentiment' in rule for rule in rules))
+
+        self.assertTrue(any('/api/ratio' in rule for rule in rules))
+
+
+
+        self.assertTrue(any('/api/post' in rule for rule in rules))
+
+        self.assertTrue(any('/api/comment' in rule for rule in rules))
+
+        self.assertTrue(any('/api/user' in rule for rule in rules))
+
         self.assertTrue(any('/metrics' in rule for rule in rules))
 
 
@@ -273,16 +295,16 @@ class TestServerExecution(unittest.TestCase):
     @patch('src.server.app.run')
     @patch('src.server.config')
     def test_main_execution_uses_config_port(self, mock_config, mock_run):
-        """Test that __main__ execution uses {{ (repo.name | upper | replace("-", "_")) }}_PORT from config."""
+        """Test that __main__ execution uses CLASSIFIER_API_PORT from config."""
         # Arrange
-        mock_config.{{ (repo.name | upper | replace("-", "_")) }}_PORT = 9999
+        mock_config.CLASSIFIER_API_PORT = 9999
         
         # Act
         # Simulate __main__ execution
         import src.server as server_module
         if hasattr(server_module, '__name__'):
             # Execute the main block logic
-            api_port = mock_config.{{ (repo.name | upper | replace("-", "_")) }}_PORT
+            api_port = mock_config.CLASSIFIER_API_PORT
             
             # Assert
             self.assertEqual(api_port, 9999)
